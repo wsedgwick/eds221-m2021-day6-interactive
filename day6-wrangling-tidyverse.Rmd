@@ -16,7 +16,6 @@ library(tidyr)
 library(dplyr)
 library(here)
 library(janitor)
-library(starwars)
 
 ```
 
@@ -155,10 +154,158 @@ ex_10 <- starwars %>%
   filter(eye_color == c("blue", "brown", "red"))
 # would go through and ask does eye_color value match blue, then goes to next row and asks does eye_color match brown, then goes to 3rd row and asks does eye_color match red, 4th row blue
 
+
+# create a subset where homeworld is Endor OR Tatooine OR Naboo AND height < 150
+
+ex_11 <- starwars %>% 
+  filter((homeworld %in% c("Endor", "Tatooine", "Naboo")),
+         height < 150)
 ```
 
+# Examples with negate !
 
+```{r}
+ex_12 <- starwars %>% 
+  filter(species != "Human")
 
+ex_13 <- starwars %>%
+  filter(!species %in% c("Human", "Ewok", "Wookie"))
+```
 
+## `select()`: select or exclude columns
 
+```{r}
+# Select by name
+ex_14 <- wb_clean %>% 
+  select(country, year, co2_emmisions_kt)
+
+# Select a range of columns
+
+ex_15 <- wb_clean %>% 
+  select(year:fossil_fuel_consumption_pct)
+
+#Select a range of columns excluding columns within range
+
+ex_16 <- wb_clean %>% 
+  select(year:fossil_fuel_consumption_pct, -access_electricity_pp)
+
+```
+
+```{r}
+ex_17 <- wb_clean %>% 
+  filter(country %in% c("Bolivia", "Chile", "Mexico")) %>%
+  select(country:fossil_fuel_consumption_pct)
+```
+
+# Select certain columns and renames them in order
+
+```{r}
+ex_18 <- wb_clean %>% 
+  select(year_new = year,
+         emissions = co2_emmisions_kt,
+         country_name = country)
+
+# Select only columns for country, year and water stress, and reorder them as year, country and water stress, then filter to only include observations for any three countries of my choosing
+
+ex_19 <- wb_clean %>% 
+  select(year,
+         country, 
+         water_stress) %>%
+  filter(country %in% c("Argentina", "France", "Kenya"))
+```
+
+### `rename` rename columns
+
+```{r}
+ex_20 <- wb_clean %>% 
+  rename(ffcp = fossil_fuel_consumption_pct,
+         ws = water_stress)
+
+# Rename any 2 columns
+
+ex_21 <- wb_clean %>% 
+  rename(access_elec_pp = access_electricity_pp,
+         co2_emmis_kt = co2_emmisions_kt)
+```
+
+### `mutate()`: update an existing column, or add a new one
+
+If you assign a NEW column name, it will add a new column to the end of your data frame. If you assign an existing column name, it will overwrite that column
+
+```{r}
+ex_22 <- wb_clean %>% 
+  mutate(co2_emissions_t = co2_emmisions_kt * 1000) %>% 
+  relocate(co2_emissions_t, .after = co2_emmisions_kt)
+
+ex_23 <- wb_clean %>% 
+  mutate(yay = "YAY")
+
+ex_24 <-wb_clean %>% 
+  mutate(year = as.character(year))
+
+#dplyr::relocate()
+
+ex_26 <- wb_clean %>% 
+  relocate(water_stress, .after = year)
+
+# Relocate co2 emissions in tons to be next to emissions in kilotons
+
+```
+
+### `group_by %>% summarize`
+
+group_by: Creates groups under the hood based on variables you specify
+
+summarize: apply your functions to EACH GROUP, and return them in a nice summary table
+
+```{r}
+ex_27 <- starwars %>% 
+  filter(homeworld %in% c("Naboo", "Tatooine")) %>% 
+  group_by(species) %>% 
+  summarise(mean_height = mean(height, na.rm = TRUE),
+            mean_mass = mean(mass, na.rm = TRUE),
+            count = n())
+```
+
+```{r}
+
+df <- tribble(
+  ~species, ~length, ~number,
+  "lobster", 12, 4,
+  "lobster", 14, 6,
+  "lobster", 15, 2
+)
+
+df_case <- df %>% 
+  uncount(number)
+```
+
+```{r}
+# count counts observations
+# combination of group_by, summarize, n()
+starwars %>% 
+  count(homeworld, species)
+# SAME AS
+starwars %>% 
+  group_by(homeworld, species) %>% 
+  summarize(size = n())
+```
+
+Practice Example:
+
+- Start from wb_clean
+- Only keep observations for Nicaragua, Ecuador, Peru, and Chile, AND for years greater than 2005
+- Only keep columns for country, year and CO2 emissions
+- Add a new column that is co2 emissions converted to megatons
+- find the total co2 emissions for the years still in the data set by country
+
+```{r}
+final_ex <- wb_clean %>% 
+  filter(country %in% c("Nicaragua", "Ecuador", "Peru", "Chile"),
+                        year > 2005) %>% 
+  select(country, year, co2_emmisions_kt) %>% 
+  mutate(co2_emissions_mt = co2_emmisions_kt / 1000) %>% 
+  group_by(country) %>% 
+  summarise(sum_co2_mt = sum(co2_emissions_mt, na.rm = TRUE))
+```
 
